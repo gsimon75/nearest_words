@@ -20,7 +20,16 @@ class WordSetInternalNode extends WordSetNode implements WordSet.Queueable {
 	}
 
 	int size() { return children.size(); }
+	//boolean needsSplit() { return size() >= 4; }
 	boolean needsSplit() { return size() >= 16; }
+	//boolean needsSplit() { return size() >= 64; }
+
+	void dumpSizes() {
+		System.out.print("(");
+		for (Iterator<WordSetNode> it = children.iterator(); it.hasNext(); )
+			it.next().dumpSizes();
+		System.out.print(")");
+	}
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -59,6 +68,12 @@ class WordSetInternalNode extends WordSetNode implements WordSet.Queueable {
 		children.add(newChild);
 	}
 
+	public void merge(WordSetNode n) {
+		super.add(n);
+		children.addAll(((WordSetInternalNode)n).children);
+	}
+
+
 	public void add(String s) {
 		super.add(s);
 
@@ -69,7 +84,6 @@ class WordSetInternalNode extends WordSetNode implements WordSet.Queueable {
 		for (Iterator<WordSetNode> it = children.iterator(); it.hasNext(); ) {
 			WordSetNode n = it.next();
 			float d = n.boundary.areaIncreaseIfAdded(s);
-			//System.out.println("WordSetNode.add; candidate=" + n + ", areaInc=" + d);
 			if ((d < leastAreaIncrease) ||
 			    (( d == leastAreaIncrease) && (n.size() < leastArea))) {
 				leastAreaIncrease = d;

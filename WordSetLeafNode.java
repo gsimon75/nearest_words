@@ -20,7 +20,12 @@ class WordSetLeafNode extends WordSetNode implements WordSet.Queueable {
 	}
 
 	int size() { return words.size(); }
+	//boolean needsSplit() { return size() >= 5; }
 	boolean needsSplit() { return size() >= 32; }
+
+	void dumpSizes() {
+		System.out.print(" " + size());
+	}
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -42,25 +47,26 @@ class WordSetLeafNode extends WordSetNode implements WordSet.Queueable {
 	WordSetNode[] explode() {
 		int nItems = words.size();
 		WordSetLeafNode[] e = new WordSetLeafNode[nItems];
-		//System.out.println("explode; nItems=" + nItems);
 		for (int i = nItems - 1; i >= 0; i--) {
-			//System.out.println("explode; i=" + i);
 			e[i] = new WordSetLeafNode();
 			e[i].add(words.remove(i));
-			//System.out.println(Dump.indent + "Explode " + i + ":  " + e[i]);
 		}
-		//System.out.println("explode; done");
 		boundary.clear();
 		return e;
 	}
 
 	public void add(WordSetNode n) {
+		throw new RuntimeException("WordSetLeafNode cannot add other WordSetNode, only String");
+	}
+
+	public void merge(WordSetNode n) {
 		super.add(n);
 		words.addAll(((WordSetLeafNode)n).words);
 	}
 
 	public void add(String s) {
 		super.add(s);
+		int s1 = size();
 		words.add(s);
 	}
 

@@ -33,6 +33,12 @@ public class LetterSet {
 		containsNonDiacritic = other.containsNonDiacritic;
 		isOptional = other.isOptional;
 	}
+	LetterSet(String s) { // for debug only
+		int n = s.length();
+		letter = new HashSet<Character>(n);
+		for (int i = 0; i < n; i++)
+			letter.add(s.charAt(i));
+	}
 	LetterSet createDeepCopy() { return new LetterSet(this, true); }
 	void clear() {
 		letter.clear();
@@ -99,10 +105,9 @@ public class LetterSet {
 		else
 			containsNonDiacritic = true;
 	}
-	void addAll(Collection<Character> c) { letter.addAll(c); }
-	void add(LetterSet other) {
-		addAll(other.letter);
-		for (Iterator<Character> it2 = other.letter.iterator(); (!containsDiacritic || !containsNonDiacritic) && it2.hasNext(); ) {
+	void addAll(Collection<Character> coll) {
+		letter.addAll(coll);
+		for (Iterator<Character> it2 = coll.iterator(); (!isOptional || !containsDiacritic || !containsNonDiacritic) && it2.hasNext(); ) {
 			Character c = it2.next();
 			if (c == Helper.EMPTY_CHAR)
 				isOptional = true;
@@ -112,5 +117,6 @@ public class LetterSet {
 				containsNonDiacritic = true;
 		}
 	}
+	void add(LetterSet other) { addAll(other.letter); }
 
 }

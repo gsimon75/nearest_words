@@ -23,7 +23,7 @@ import com.ibm.icu.lang.UProperty;
  */
 public class Expression {
 	ArrayList<LetterSet> letters;
-	float areaCached;
+	float areaCached; // NOTE: to prevent overflowing Float, store the log of it
 
 	Expression() { letters = new ArrayList<LetterSet>(); areaCached = 0; } 
 	Expression(int n) { letters = new ArrayList<LetterSet>(n); areaCached = 0; } 
@@ -41,6 +41,7 @@ public class Expression {
 	}
 
 	Expression(String s) { this(); add(s); }
+	void add(LetterSet ls) { letters.add(ls); } // for debug only
 	Expression createDeepCopy() { return new Expression(this, true); }
 	public void clear() { letters.clear(); areaCached = 0; }
 	public String toString() {
@@ -55,11 +56,11 @@ public class Expression {
 
 	float area() {
 		if (areaCached < 0) {
-			areaCached = 1;
+			areaCached = 0;
 			for (Iterator<LetterSet> it = letters.iterator(); it.hasNext(); ) {
 				LetterSet ls = it.next();
 				float oldAreaCached = areaCached;
-				areaCached *= ls.weight();
+				areaCached += Math.log(ls.weight());
 				if (!Float.isFinite(areaCached)) {
 					System.out.println("areaCached got strange; old=" + oldAreaCached + ", ls=" + ls + ", mult=" + ls.weight());
 					System.out.println("this=" + this);
@@ -86,6 +87,7 @@ public class Expression {
 	}
 
 	public float distance(String t) {
+		boolean debug = false;
 		int m = letters.size();
 		int n = t.length();
 
@@ -104,6 +106,16 @@ public class Expression {
 		for (int j = 1; j <= n; j++)
 			d[0][j] = d[0][j - 1] + Helper.weight(t.charAt(j - 1)); // cost of insertion
  
+		if (debug) {
+			for (int i = 0; i < m; i++) {
+				LetterSet si = letters.get(i);
+				System.out.println("letters[" + i  + "] = " + si);
+				System.out.println("   weight=" + si.weight() + ", minWeight=" + si.minWeight() +
+						", isOptional=" + si.isOptional + ", containsDiacritic=" + si.containsDiacritic + ", containsNonDiacritic=" +
+						si.containsNonDiacritic);
+			}
+		}
+
 		for (int j = 1; j <= n; j++) {
 			char tj = t.charAt(j - 1);
 			for (int i = 1; i <= m; i++) {
@@ -118,7 +130,7 @@ public class Expression {
 		}
 
 		// dump the matrix
-		if (false) {
+		if (debug) {
 			System.out.format("%12s", "");
 			for (int i = 1; i <= m; i++)
 				System.out.format("%6s", letters.get(i - 1));
@@ -135,7 +147,7 @@ public class Expression {
 		}
 
 		// dump the process
-		if (false) {
+		if (debug) {
 			int i = m, j = n;
 			while ((i > 0) || (j > 0)) {
 				float costDel = (i > 0)              ? d[i - 1][j    ] : Float.POSITIVE_INFINITY;

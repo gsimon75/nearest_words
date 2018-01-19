@@ -48,11 +48,18 @@ public class WordSet {
 			}
 		};
 
+	public int levels = 1;
+
 	public interface ResultListener {
 		public boolean foundResult(String s, float dist);
 	}
 
 	WordSetInternalNode root = new WordSetInternalNode();
+
+	void dumpSizes() {
+		root.dumpSizes();
+		System.out.println();
+	}
 
 	void add(String s) {
 		root.add(s);
@@ -60,6 +67,7 @@ public class WordSet {
 			WordSetNode[] newNodes = root.split();
 			root.add(newNodes[0]);
 			root.add(newNodes[1]);
+			levels++;
 		}
 	}
 
@@ -72,17 +80,28 @@ public class WordSet {
 		ResultCollector collector = new ResultCollector() {
 			public void result(WordSet.Queueable n) {
 				float dist = n.distance(s);
-				//System.out.println("Push; dist=" + dist); System.out.println(n);
+				//System.out.println("Push; dist=" + dist + ", hash=" + n.hashCode()); //System.out.println(n);
 				prioQueue.add(new AbstractMap.SimpleEntry<WordSet.Queueable, Float>(n, dist));
 			}
 		};
 
 		collector.result(root);
 		while (!prioQueue.isEmpty()) {
+
+			PriorityQueue<AbstractMap.SimpleEntry<WordSet.Queueable, Float> > tq = 
+				new PriorityQueue<AbstractMap.SimpleEntry<WordSet.Queueable, Float> >(prioQueue);
+
+			/*System.out.print("Queue:");
+			while (!tq.isEmpty()) {
+				AbstractMap.SimpleEntry<WordSet.Queueable, Float> e = tq.poll();
+				System.out.print(" " + e.getValue());
+			}
+			System.out.println();*/
+
 			AbstractMap.SimpleEntry<WordSet.Queueable, Float> e = prioQueue.poll();
 			WordSet.Queueable item = e.getKey();
 			float dist = e.getValue().floatValue();
-			//System.out.println("\nPop; dist=" + dist); System.out.println(item);
+			//System.out.println("\nPop; dist=" + dist + ", hash=" + item.hashCode()); //System.out.println(item);
 			if (item instanceof WordSetString) {
 				if (!listener.foundResult(((WordSetString)item).content, dist))
 					break;

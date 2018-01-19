@@ -18,6 +18,7 @@ public abstract class WordSetNode implements WordSet.Queueable {
 	abstract int size();
 	abstract boolean needsSplit();
 	abstract WordSetNode[] explode();
+	abstract void dumpSizes();
 
 	public void add(WordSetNode n) {
 		boundary.add(n.boundary);
@@ -27,11 +28,19 @@ public abstract class WordSetNode implements WordSet.Queueable {
 		boundary.add(s);
 	}
 
+	abstract public void merge(WordSetNode n);
+
 	public float distance(String s) {
 		return boundary.distance(s);
 	}
 
 	public String toString() { return boundary.toString(); }
+
+	WordSetNode reduce(WordSetNode n) {
+		while ((n instanceof WordSetInternalNode) && (n.size() == 1))
+			n = ((WordSetInternalNode)n).children.get(0);
+		return n;
+	}
 
 	// Split the node, return the 2 results in an array
 	// NOTE: this instance is cleared in the process
@@ -42,13 +51,10 @@ public abstract class WordSetNode implements WordSet.Queueable {
 		// calculate a cost matrix (NOTE: only the upper half is used)
 		float area_inc[][] = new float[nItems][nItems];
 		for (int i = 0; i < (nItems - 1); i++)
-			for (int j = i + 1; j < nItems; j++) {
-				//System.out.println("Considering adding " + e[j] + " to " + e[i]);
+			for (int j = i + 1; j < nItems; j++)
 				area_inc[i][j] = e[i].boundary.areaIncreaseIfAdded(e[j].boundary);
-			}
 
 		for (int nRemaining = nItems; nRemaining > 2; nRemaining--) {
-			//System.out.println("Remaining " + nRemaining + " of " + nItems);
 			// find the pair whose merge would result in a less increase of area,
 			// and break the ties by choosing the smallest one
 			float leastAreaIncrease = Float.POSITIVE_INFINITY;
@@ -83,12 +89,8 @@ public abstract class WordSetNode implements WordSet.Queueable {
 			}
 
 			// merge e[mergeWhat] into e[mergeTo], and recalculate the affected area_inc[][] values
-			//System.out.println(Dump.indent + "Merge before: " + e[mergeTo]);
-			//System.out.println(Dump.indent + "      what  : " + e[mergeWhat]);
-			e[mergeTo].add(e[mergeWhat]);
-			//System.out.println(Dump.indent + "      after : " + e[mergeTo]);
+			e[mergeTo].merge(e[mergeWhat]);
 			e[mergeWhat] = null;
-			//System.out.println("Fixing the matrix");
 			for (int i = 0; i < mergeTo; i++) if (e[i] != null)
 				area_inc[i][mergeTo] = e[i].boundary.areaIncreaseIfAdded(e[mergeTo].boundary);
 			for (int j = mergeTo + 1; j < nItems; j++) if (e[j] != null)
@@ -115,6 +117,13 @@ public abstract class WordSetNode implements WordSet.Queueable {
 				}
 			}
 		}
+		// reduce unneeded wrappers
+		WordSetNode a = reduce(e[0]);
+		WordSetNode b = reduce(e[1]);
+		e = new WordSetNode[2];
+		e[0] = a;
+		e[1] = b;
+		// done
 		return e;
 	}
 
