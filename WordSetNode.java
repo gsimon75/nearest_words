@@ -49,7 +49,7 @@ public abstract class WordSetNode implements WordSet.Queueable {
 		WordSetNode[] e = explode();
 
 		// calculate a cost matrix (NOTE: only the upper half is used)
-		float area_inc[][] = new float[nItems][nItems];
+		double area_inc[][] = new double[nItems][nItems];
 		for (int i = 0; i < (nItems - 1); i++)
 			for (int j = i + 1; j < nItems; j++)
 				area_inc[i][j] = e[i].boundary.areaIncreaseIfAdded(e[j].boundary);
@@ -57,8 +57,8 @@ public abstract class WordSetNode implements WordSet.Queueable {
 		for (int nRemaining = nItems; nRemaining > 2; nRemaining--) {
 			// find the pair whose merge would result in a less increase of area,
 			// and break the ties by choosing the smallest one
-			float leastAreaIncrease = Float.POSITIVE_INFINITY;
-			float leastArea = Float.POSITIVE_INFINITY;
+			double leastAreaIncrease = Double.POSITIVE_INFINITY;
+			double leastArea = Double.POSITIVE_INFINITY;
 			int mergeTo = -1;
 			int mergeWhat = -1;
 

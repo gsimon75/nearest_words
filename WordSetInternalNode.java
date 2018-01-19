@@ -77,13 +77,13 @@ class WordSetInternalNode extends WordSetNode implements WordSet.Queueable {
 	public void add(String s) {
 		super.add(s);
 
-		float leastAreaIncrease = Float.POSITIVE_INFINITY;
-		float leastArea = Float.POSITIVE_INFINITY;
+		double leastAreaIncrease = Double.POSITIVE_INFINITY;
+		double leastArea = Double.POSITIVE_INFINITY;
 		WordSetNode bestFit = null;
 
 		for (Iterator<WordSetNode> it = children.iterator(); it.hasNext(); ) {
 			WordSetNode n = it.next();
-			float d = n.boundary.areaIncreaseIfAdded(s);
+			double d = n.boundary.areaIncreaseIfAdded(s);
 			if ((d < leastAreaIncrease) ||
 			    (( d == leastAreaIncrease) && (n.size() < leastArea))) {
 				leastAreaIncrease = d;

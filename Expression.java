@@ -23,7 +23,7 @@ import com.ibm.icu.lang.UProperty;
  */
 public class Expression {
 	ArrayList<LetterSet> letters;
-	float areaCached; // NOTE: to prevent overflowing Float, store the log of it
+	double areaCached; // NOTE: to prevent overflowing Float, store the log of it
 
 	Expression() { letters = new ArrayList<LetterSet>(); areaCached = 0; } 
 	Expression(int n) { letters = new ArrayList<LetterSet>(n); areaCached = 0; } 
@@ -54,21 +54,18 @@ public class Expression {
 		return sb.toString();
 	}
 
-	float area() {
+	double area() {
 		if (areaCached < 0) {
-			areaCached = 0;
+			//areaCached = 0;
+			areaCached = 1;
 			for (Iterator<LetterSet> it = letters.iterator(); it.hasNext(); ) {
 				LetterSet ls = it.next();
-				float oldAreaCached = areaCached;
-				areaCached += Math.log(ls.weight());
-				if (!Float.isFinite(areaCached)) {
-					System.out.println("areaCached got strange; old=" + oldAreaCached + ", ls=" + ls + ", mult=" + ls.weight());
-					System.out.println("this=" + this);
-					throw new RuntimeException("areaCached got strange");
-				}
+				//areaCached += Math.log(ls.weight());
+				areaCached *= ls.weight();
+				if (!Double.isFinite(areaCached))
+					throw new RuntimeException("areaCached got transfinite");
 			}
 		}
-		//System.out.println("Area of " + toString() + " = " + areaCached);
 		return areaCached;
 	}
 
@@ -228,20 +225,20 @@ public class Expression {
 		//System.out.println(": result=" + this);
 	}
 
-	float areaIncreaseIfAdded(Expression other) {
+	double areaIncreaseIfAdded(Expression other) {
 		// FIXME: naive algorithm, may be worth refactoring for some more effective
 		Expression temp = createDeepCopy();
 		temp.add(other);
-		float diff = temp.area() - area();
+		double diff = temp.area() - area();
 		//System.out.println("areaIncreaseIfAdded; this=" + this + ", candidate=" + temp + ", diff=" + diff);
 		return diff;
 	}
 
-	float areaIncreaseIfAdded(String s) {
+	double areaIncreaseIfAdded(String s) {
 		// FIXME: naive algorithm, may be worth refactoring for some more effective
 		Expression temp = createDeepCopy();
 		temp.add(s);
-		float diff = temp.area() - area();
+		double diff = temp.area() - area();
 		return diff;
 	}
 
