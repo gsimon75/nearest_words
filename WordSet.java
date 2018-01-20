@@ -17,28 +17,15 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.ResultSet;
+import java.nio.ByteBuffer;
 
 class WordSetString implements WordSet.Queueable {
 	String content;
 	long id;
 
-	public WordSetString(String s) {
+	public WordSetString(String s, long nId) {
 		content = s;
-		try {
-			WordSet.qNewWord.setLong(1, WordSet.langId);
-			WordSet.qNewWord.setString(2, s);
-			id = -1;
-			if (WordSet.qNewWord.executeUpdate() == 1) {
-				ResultSet keys = WordSet.qNewWord.getGeneratedKeys();
-				if (keys.next())
-					id = keys.getLong(1);
-			}
-			if (id < 0)
-				throw new SQLException("Creating word failed, no ID obtained.");
-		}
-		catch (SQLException e) {
-			throw new RuntimeException(e.getMessage());
-		}
+		id = nId;
 	}
 	public String toString() { return content; }
 
@@ -52,9 +39,9 @@ class WordSetString implements WordSet.Queueable {
 }
 
 public class WordSet {
-	static Connection db;
-	static PreparedStatement qNewWord;
-	static long langId;
+	Connection db;
+	PreparedStatement qNewWord, qNewNode, qLangRootNode;
+	long langId;
 
 	public interface Queueable {
 		public float distance(String s);
@@ -88,6 +75,7 @@ public class WordSet {
 	public WordSet(String dbFileName, String langCode) {
 		try {
 			db = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
+			db.setAutoCommit(false);
 			PreparedStatement qLang = db.prepareStatement("INSERT INTO lang_t (isocode) VALUES (?1)", Statement.RETURN_GENERATED_KEYS);
 			qLang.setString(1, langCode);
 			langId = -1;
@@ -100,6 +88,8 @@ public class WordSet {
 				throw new SQLException("Creating lang failed, no ID obtained.");
 
 			qNewWord = db.prepareStatement("INSERT INTO word_t (lang, value) VALUES (?1, ?2)", Statement.RETURN_GENERATED_KEYS);
+			qNewNode = db.prepareStatement("INSERT INTO node_t (ntype, boundary, mandatory_pfx, children) VALUES (?1, ?2, ?3, ?4)", Statement.RETURN_GENERATED_KEYS);
+			qLangRootNode = db.prepareStatement("UPDATE lang_t SET rootnode=?2 WHERE id=?1", Statement.RETURN_GENERATED_KEYS);
 		}
 		catch (SQLException e) {
 			throw new RuntimeException(e.getMessage());
@@ -112,7 +102,22 @@ public class WordSet {
 	}
 
 	void add(String s) {
-		WordSetString ws = new WordSetString(s);
+		long id = -1;
+		try {
+			qNewWord.setLong(1, langId);
+			qNewWord.setString(2, s);
+			if (qNewWord.executeUpdate() == 1) {
+				ResultSet keys = qNewWord.getGeneratedKeys();
+				if (keys.next())
+					id = keys.getLong(1);
+			}
+			if (id < 0)
+				throw new SQLException("Creating word failed, no ID obtained.");
+		}
+		catch (SQLException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+		WordSetString ws = new WordSetString(s, id);
 		root.add(ws);
 		if (root.needsSplit()) {
 			WordSetNode[] newNodes = root.split();
@@ -123,6 +128,68 @@ public class WordSet {
 	}
 
         public String toString() { return root.toString(); }
+
+	long nodeToDB(WordSetNode node) throws SQLException {
+		ByteBuffer bb = ByteBuffer.allocate(8 * node.size());
+		if (node instanceof WordSetLeafNode) {
+			for (Iterator<WordSetString> it = ((WordSetLeafNode)node).words.iterator(); it.hasNext(); ) 
+				bb.putLong(it.next().id);
+			qNewNode.setInt(1, 0); // ?1 = ntype
+		}
+		else if (node instanceof WordSetInternalNode) {
+			for (Iterator<WordSetNode> it = ((WordSetInternalNode)node).children.iterator(); it.hasNext(); ) 
+				bb.putLong(nodeToDB(it.next()));
+			qNewNode.setInt(1, 1); // ?1 = ntype
+		}
+		
+		int mandatory_pfx = 0;
+		for (Iterator<LetterSet> it = node.boundary.letters.iterator(); it.hasNext(); ) {
+			if (it.next().isOptional)
+				break;
+			mandatory_pfx++;
+		}
+
+		StringBuilder sb = new StringBuilder();
+		for (Iterator<LetterSet> it = node.boundary.letters.iterator(); it.hasNext(); ) {
+			LetterSet ls = it.next();
+			for (Iterator<Character> itc = ls.letter.iterator(); itc.hasNext(); ) {
+				Character c = itc.next();
+				if (c != Helper.EMPTY_CHAR)
+					sb.append(c);
+			}
+			if (it.hasNext())
+				sb.append('|');
+				
+		}
+		qNewNode.setString(2, sb.toString());
+		qNewNode.setInt(3, mandatory_pfx);
+		qNewNode.setBytes(4, bb.array()); // ?4 = children
+
+		long id = -1;
+		if (qNewNode.executeUpdate() == 1) {
+			ResultSet keys = qNewNode.getGeneratedKeys();
+			if (keys.next())
+				id = keys.getLong(1);
+		}
+		if (id < 0)
+			throw new SQLException("Creating node failed, no ID obtained.");
+		return id;
+	}
+
+	void nodesToDB() {
+		try {
+			long id = nodeToDB(root);
+			qLangRootNode.setLong(1, langId);
+			qLangRootNode.setLong(2, id);
+			if (qLangRootNode.executeUpdate() != 1)
+				throw new SQLException("Cannot update lang root node id");
+			db.commit();
+		}
+		catch (SQLException e) {
+			System.out.println(e);
+			throw new RuntimeException(e);
+		}
+	}
 
 	void search(final String s, ResultListener listener) {
 		PriorityQueue<AbstractMap.SimpleEntry<WordSet.Queueable, Float> > prioQueue = 

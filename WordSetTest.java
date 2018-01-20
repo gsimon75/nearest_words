@@ -117,6 +117,7 @@ class WordSetTest {
 			System.out.println("Error reading file '" + fileName + "'");                  
 		}
 		//System.out.println("Tree=\n" + ws); 
+		ws.nodesToDB();
 
 		InputStreamReader isr = new InputStreamReader(System.in);
 		BufferedReader br = new BufferedReader(isr);
