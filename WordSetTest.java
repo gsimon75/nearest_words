@@ -8,7 +8,7 @@ import com.ibm.icu.text.Normalizer2;
 //import android.icu.ETC
 
 class WordSetTest {
-	public static WordSet ws = new WordSet();
+	public static WordSet ws = new WordSet("wordset.db", "deu");
 	static Normalizer2 toNFD = Normalizer2.getNFDInstance();
 
 	public static void dumpSizes() {

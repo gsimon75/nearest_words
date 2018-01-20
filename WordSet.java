@@ -1,3 +1,4 @@
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.HashMap;
@@ -10,11 +11,35 @@ import java.util.PriorityQueue;
 import java.util.Map;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 class WordSetString implements WordSet.Queueable {
 	String content;
+	long id;
 
-	public WordSetString(String s) { content = s; }
+	public WordSetString(String s) {
+		content = s;
+		try {
+			WordSet.qNewWord.setLong(1, WordSet.langId);
+			WordSet.qNewWord.setString(2, s);
+			id = -1;
+			if (WordSet.qNewWord.executeUpdate() == 1) {
+				ResultSet keys = WordSet.qNewWord.getGeneratedKeys();
+				if (keys.next())
+					id = keys.getLong(1);
+			}
+			if (id < 0)
+				throw new SQLException("Creating word failed, no ID obtained.");
+		}
+		catch (SQLException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
 	public String toString() { return content; }
 
 	public float distance(String t) {
@@ -27,6 +52,10 @@ class WordSetString implements WordSet.Queueable {
 }
 
 public class WordSet {
+	static Connection db;
+	static PreparedStatement qNewWord;
+	static long langId;
+
 	public interface Queueable {
 		public float distance(String s);
 		public void enqueue(WordSet.ResultCollector coll);
@@ -56,13 +85,35 @@ public class WordSet {
 
 	WordSetInternalNode root = new WordSetInternalNode();
 
+	public WordSet(String dbFileName, String langCode) {
+		try {
+			db = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
+			PreparedStatement qLang = db.prepareStatement("INSERT INTO lang_t (isocode) VALUES (?1)", Statement.RETURN_GENERATED_KEYS);
+			qLang.setString(1, langCode);
+			langId = -1;
+			if (qLang.executeUpdate() == 1) {
+				ResultSet keys = qLang.getGeneratedKeys();
+				if (keys.next())
+					langId = keys.getLong(1);
+			}
+			if (langId < 0)
+				throw new SQLException("Creating lang failed, no ID obtained.");
+
+			qNewWord = db.prepareStatement("INSERT INTO word_t (lang, value) VALUES (?1, ?2)", Statement.RETURN_GENERATED_KEYS);
+		}
+		catch (SQLException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+
 	void dumpSizes() {
 		root.dumpSizes();
 		System.out.println();
 	}
 
 	void add(String s) {
-		root.add(s);
+		WordSetString ws = new WordSetString(s);
+		root.add(ws);
 		if (root.needsSplit()) {
 			WordSetNode[] newNodes = root.split();
 			root.add(newNodes[0]);

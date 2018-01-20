@@ -24,8 +24,8 @@ public abstract class WordSetNode implements WordSet.Queueable {
 		boundary.add(n.boundary);
 	}
 
-	public void add(String s) {
-		boundary.add(s);
+	public void add(WordSetString s) {
+		boundary.add(s.content);
 	}
 
 	abstract public void merge(WordSetNode n);
