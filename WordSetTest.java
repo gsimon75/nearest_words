@@ -8,12 +8,7 @@ import com.ibm.icu.text.Normalizer2;
 //import android.icu.ETC
 
 class WordSetTest {
-	public static WordSet ws = new WordSet("wordset.db", "deu");
 	static Normalizer2 toNFD = Normalizer2.getNFDInstance();
-
-	public static void dumpSizes() {
-		ws.dumpSizes();
-	}
 
 	public static final void main1(String[] argv) {
 		String s1 = "abarbeiten";
@@ -93,7 +88,8 @@ class WordSetTest {
 	}
 
 
-	public static final void main(String[] argv) {
+	public static final void main3(String[] argv) {
+		WordSet ws = new WordSet("wordset.db", "deu");
 		String fileName = argv[0];
 
 		try {
@@ -145,6 +141,39 @@ class WordSetTest {
 						}
 					};
 				ws.search(word, listener);
+			}
+		}
+	}
+
+	public static final void main(String[] argv) {
+		WordSetDB wsdb = new WordSetDB("wordset.db", "deu");
+
+		InputStreamReader isr = new InputStreamReader(System.in);
+		BufferedReader br = new BufferedReader(isr);
+		while (true) {
+			System.out.print("Ready> ");
+			String line;
+			try {
+				line = br.readLine();
+			}
+			catch (IOException ex) {
+				line = null;
+			}
+			if (line == null)
+				break;
+			String word = toNFD.normalize(line.trim());
+
+			{
+				WordSetDB.ResultListener listener =
+					new WordSetDB.ResultListener() {
+						int n = 0;
+						public boolean foundResult(String s, float dist) {
+							System.out.println("n=" + n + ",dist=" + dist + ", s='" + s + "'");
+							n++;
+							return n < 10;
+						}
+					};
+				wsdb.search(word, listener);
 			}
 		}
 	}

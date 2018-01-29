@@ -5,9 +5,13 @@ ICU4J_MINOR=2
 SQLITE_VERSION=3.21.0
 
 ICU_JAR=icu4j-$(ICU4J_MAJOR)_$(ICU4J_MINOR).jar
-SQLITE_JAR=sqlite-jdbc-$(SQLITE_VERSION).jar
+#SQLITE_JAR=sqlite-jdbc-$(SQLITE_VERSION).jar
 
-WST_CLASSES=WordSetTest.class WordSet.class WordSetNode.class WordSetInternalNode.class WordSetLeafNode.class Expression.class LetterSet.class Dump.class Helper.class
+#/usr/local/lib/libsqlitejdbc.so
+SQLITE_JAR=/usr/local/share/java/classes/sqlitejdbc-native.jar
+
+
+WST_CLASSES=WordSetTest.class WordSet.class WordSetNode.class WordSetInternalNode.class WordSetLeafNode.class Expression.class LetterSet.class Dump.class Helper.class WordSetDB.class
 WST_LIBS=$(ICU_JAR) $(SQLITE_JAR)
 
 
@@ -23,7 +27,7 @@ clean:
 		rm -f *.class
 
 run:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) $(subst .class,,$<) test.words
+		java -cp $(CLASSPATH) $(subst .class,,$<)
 
 run4:		$(WST_CLASSES)
 		java -cp $(CLASSPATH) $(subst .class,,$<) a100.words
@@ -38,7 +42,7 @@ run3:		LDist.class
 		java -cp $(CLASSPATH) $(subst .class,,$<) غرفة غُرْفَةٌ
 
 %.class:	%.java
-		javac -cp $(CLASSPATH) -g $<
+		javac -cp $(CLASSPATH) -encoding UTF-8 -g $<
 
 $(ICU_JAR):
 		curl -OL http://download.icu-project.org/files/icu4j/$(ICU4J_MAJOR).$(ICU4J_MINOR)/$@

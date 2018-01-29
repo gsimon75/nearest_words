@@ -12,7 +12,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 
 /*
-   Expression = list of character sets, like '[ap][pel][pau][lrm][e]' for 'apple', 'pear', 'plum'
+   Expression = list of character sets, like '[ap][pel][pau][lrm][e·]' for 'apple', 'pear', 'plum'
    It covers more than the actual words, but then behaves like a 'bounding box' for them.
    Accents are separated from the characters, so for example 'á' is actually two characters:
    'a' and '◌́' (0x61 and 0x0301).
@@ -40,7 +40,30 @@ public class Expression {
 		areaCached = other.areaCached;
 	}
 
-	Expression(String s) { this(); add(s); }
+	Expression(String s, int mandatory_prefix_len) {
+		int idx = 0;
+		int nLetters = 0;
+		while (idx >= 0) {
+			nLetters++;
+			idx = s.indexOf("|", idx + 1);
+		}
+		letters = new ArrayList<LetterSet>(nLetters);
+		areaCached = -1f;
+		idx = 0;
+		int sLen = s.length();
+		for (int i = 0; i < nLetters; i++) {
+			letters.add(new LetterSet());
+			while (idx < sLen) {
+				char c = s.charAt(idx);
+				idx++;
+				if (c == '|')
+					break;
+				letters.get(i).add(c);
+			}
+			if (i >= mandatory_prefix_len)
+				letters.get(i).add(Helper.EMPTY_CHAR);
+		}
+	}
 	void add(LetterSet ls) { letters.add(ls); } // for debug only
 	Expression createDeepCopy() { return new Expression(this, true); }
 	public void clear() { letters.clear(); areaCached = 0; }
