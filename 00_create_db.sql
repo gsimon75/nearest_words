@@ -35,7 +35,6 @@ CREATE TABLE lang_t (
 DROP TABLE IF EXISTS concept_t;
 CREATE TABLE concept_t (
 	id              INTEGER PRIMARY KEY,
-	-- definition     TEXT,
 	class           INTEGER -- enum word_classes_t
 );
 DROP INDEX IF EXISTS concept_class_i;
@@ -57,7 +56,6 @@ CREATE TABLE tag_t (
 -- that is not required for the meaning (eg. 'get on' instead of 'getting on', but
 -- not just 'get'). Also it is language-specific, because 'Bad' means a different
 -- concept in English than in German :)
--- NOTE: no index on `value`, that's what the r-trees are for.
 DROP TABLE IF EXISTS word_t;
 CREATE TABLE word_t (
 	id              INTEGER PRIMARY KEY,
@@ -66,6 +64,8 @@ CREATE TABLE word_t (
 );
 DROP INDEX IF EXISTS word_lang_i;
 CREATE INDEX word_lang_i ON word_t (lang);
+DROP INDEX IF EXISTS word_value_i;
+CREATE INDEX word_value_i ON word_t (value);
 
 -- ## Nodes
 -- For looking up words based on similarity, we need an R-tree (for each
@@ -105,10 +105,17 @@ CREATE INDEX w_c_concept_i ON word_concept_t (concept);
 -- ## Connection table: Tags-to-concepts
 DROP TABLE IF EXISTS tag_concept_t;
 CREATE TABLE tag_concept_t (
-	tag            INTEGER, -- REFERENCES tag_t
+	tag             INTEGER, -- REFERENCES tag_t
 	concept         INTEGER -- REFERENCES concept_t
 );
 DROP INDEX IF EXISTS t_c_word_i;
 CREATE INDEX t_c_word_i ON tag_concept_t (tag);
 DROP INDEX IF EXISTS t_c_concept_i;
 CREATE INDEX t_c_concept_i ON tag_concept_t (concept);
+
+-- ## TODO: relation of concepts, like
+-- noun-to-noun: generalisation-of, specialisation-of (eg. 'rose' is spec. of 'flower' is spec. of 'plant' is spec. of 'object')
+-- adjective-to-noun: abstraction-of, state-of (eg. 'silence' is abstr. of 'silent', 'silentness' is state of 'silent')
+-- adjective-to-adjective: opposite-of, higher-degree-of (eg. 'cold' is opp. of 'hot', 'hot' is higher deg. of 'warm')
+-- verb-to-noun: result-of (eg. 'meal' is result of 'cook')
+-- etc.

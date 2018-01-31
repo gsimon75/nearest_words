@@ -10,8 +10,8 @@ ICU_JAR=icu4j-$(ICU4J_MAJOR)_$(ICU4J_MINOR).jar
 #/usr/local/lib/libsqlitejdbc.so
 SQLITE_JAR=/usr/local/share/java/classes/sqlitejdbc-native.jar
 
+WST_CLASSES=Expression.class Helper.class LetterSet.class WordSet.class WordSetSearch.class WordSetTrainer.class
 
-WST_CLASSES=WordSetTest.class WordSet.class WordSetNode.class WordSetInternalNode.class WordSetLeafNode.class Expression.class LetterSet.class Dump.class Helper.class WordSetDB.class
 WST_LIBS=$(ICU_JAR) $(SQLITE_JAR)
 
 
