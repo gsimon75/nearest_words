@@ -18,28 +18,32 @@ class WordSetTrainer extends WordSet {
 
 	WordSetTrainer(String[] argv) {
 		connectDB("wordset.db");
-		long langId = createLang("deu");
-		uploadWordsFile(argv[0], langId);
-		buildRtreeIndex(langId);
-	}
-
-	long createLang(String langCode) {
+		long langId = -1;
+		long rootNodeId = -1;
+		String langCode = "deu";
 		try {
-			PreparedStatement qLang = db.prepareStatement("INSERT INTO lang_t (isocode) VALUES (?1)", Statement.RETURN_GENERATED_KEYS);
-			qLang.setString(1, langCode);
-			long id = -1;
-			if (qLang.executeUpdate() == 1) {
-				ResultSet keys = qLang.getGeneratedKeys();
-				if (keys.next())
-					id = keys.getLong(1);
+			qGetLang.setString(1, langCode);
+			ResultSet rs = qGetLang.executeQuery();
+			if (rs.next()) {
+				langId = rs.getLong(1);
+				rootNodeId = rs.getLong(2);
 			}
-			if (id < 0)
-				throw new RuntimeException("Creating lang failed, no ID obtained.");
-			return id;
+			else {
+				qNewLang.setString(1, langCode);
+				if (qNewLang.executeUpdate() == 1) {
+					rs = qNewLang.getGeneratedKeys();
+					if (rs.next())
+						langId = rs.getLong(1);
+				}
+				if (langId == -1)
+					throw new RuntimeException("Creating lang failed, no ID obtained.");
+			}
 		}
-		catch (Exception e) {
+		catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+		uploadWordsFile(argv[0], langId);
+		buildRtreeIndex(langId, rootNodeId);
 	}
 
 	void uploadWordsFile(String fileName, long langId) {
@@ -49,7 +53,9 @@ class WordSetTrainer extends WordSet {
 			String line;
 
 			while ((line = bufferedReader.readLine()) != null) {
-
+				System.out.println("Input: " + line);
+				DBString s = new DBString(line, langId);
+				s.getID();
 			}   
 
 			bufferedReader.close();         
@@ -67,7 +73,7 @@ class WordSetTrainer extends WordSet {
 	}
 
 	public int levels = 1;
-	void buildRtreeIndex(long langId) {
+	void buildRtreeIndex(long langId, long oldRootNodeId) {
 		DBNode root = new DBNode(false);
 
 		try {
@@ -86,10 +92,11 @@ class WordSetTrainer extends WordSet {
 				}
 			}
 
-			// TODO: zap old node tree if exists - not easy, needs traversal
-			qLangRootNode.setLong(1, langId);
-			qLangRootNode.setLong(2, root.getID());
-			if (qLangRootNode.executeUpdate() != 1)
+			if (oldRootNodeId != -1)
+				new DBNode(oldRootNodeId).removeFromDB();
+			qLangSetRootNode.setLong(1, langId);
+			qLangSetRootNode.setLong(2, root.getID());
+			if (qLangSetRootNode.executeUpdate() != 1)
 				throw new SQLException("Cannot update lang root node id");
 			db.commit();
 		}

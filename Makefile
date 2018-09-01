@@ -26,20 +26,13 @@ CLASSPATH=$(ICU_JAR):$(SQLITE_JAR):.
 clean:
 		rm -f *.class
 
-run:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) $(subst .class,,$<)
+search:		$(WST_CLASSES)
+		java -cp $(CLASSPATH) WordSetSearch
 
-run4:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) $(subst .class,,$<) a100.words
 
-run1:		LDist.class
-		java -cp $(CLASSPATH) $(subst .class,,$<) kitten sitting
+train:		$(WST_CLASSES)
+		java -cp $(CLASSPATH) WordSetTrainer a.words
 
-run2:		LDist.class
-		java -cp $(CLASSPATH) $(subst .class,,$<) távfutó távfűtő
-
-run3:		LDist.class
-		java -cp $(CLASSPATH) $(subst .class,,$<) غرفة غُرْفَةٌ
 
 %.class:	%.java
 		javac -cp $(CLASSPATH) -encoding UTF-8 -g $<

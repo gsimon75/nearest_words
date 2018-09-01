@@ -23,7 +23,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 public class WordSetSearch extends WordSet {
-	long langId, rootNodeId;
 
 	public interface ResultListener {
 		public boolean foundResult(String s, float dist);
@@ -35,18 +34,16 @@ public class WordSetSearch extends WordSet {
 	WordSetSearch(String[] argv) {
 		String langCode = "deu";
 		connectDB("wordset.db");
+		long rootNodeId;
 		try {
 			db.setReadOnly(true);
-			PreparedStatement qLang = db.prepareStatement("SELECT id, rootnode FROM lang_t WHERE isocode=?1");
-			qLang.setString(1, langCode);
-			ResultSet rs = qLang.executeQuery();
+			qGetLang.setString(1, langCode);
+			ResultSet rs = qGetLang.executeQuery();
 			if (!rs.next())
 				throw new RuntimeException("Lang '" + langCode + "' not found");
-			langId = rs.getLong(1);
 			rootNodeId = rs.getLong(2);
-
 		}
-		catch (Exception e) { throw new RuntimeException(e); }
+		catch (SQLException e) { throw new RuntimeException(e); }
 
 		InputStreamReader isr = new InputStreamReader(System.in);
 		BufferedReader br = new BufferedReader(isr);
@@ -73,11 +70,11 @@ public class WordSetSearch extends WordSet {
 			if (line == null)
 				break;
 			String word = toNFD.normalize(line.trim());
-			search(word, dumpTop10);
+			search(rootNodeId, word, dumpTop10);
 		}
 	}
 
-	void search(final String s, ResultListener listener) {
+	void search(long rootNodeId, final String s, ResultListener listener) {
 		PriorityQueue<AbstractMap.SimpleEntry<Queueable, Float> > prioQueue = new PriorityQueue<AbstractMap.SimpleEntry<Queueable, Float> >(compareByValue);
 
 		ResultCollector collector = new ResultCollector() {

@@ -21,8 +21,9 @@ import com.ibm.icu.text.Normalizer2;
 
 public class WordSet {
 	Connection db;
-	PreparedStatement qNewWord, qNewNode, qLangRootNode;
-	PreparedStatement qGetWord, qGetNode;
+	PreparedStatement qGetWordByID, qGetWordByContent, qNewWord;
+	PreparedStatement qGetNode, qNewNode, qDeleteNode;
+	PreparedStatement qGetLang, qNewLang, qLangSetRootNode;
 
 	interface ResultCollector {
 		public void addResult(Queueable n);
@@ -47,6 +48,27 @@ public class WordSet {
 					return 0;
 			}
 		};
+
+	void connectDB(String dbFileName) {
+		try {
+			Class.forName("org.sqlite.JDBC");
+			db = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
+			db.setAutoCommit(false);
+
+			qGetLang = db.prepareStatement("SELECT id, rootnode FROM lang_t WHERE isocode=?1");
+			qNewLang = db.prepareStatement("INSERT INTO lang_t (isocode) VALUES (?1)", Statement.RETURN_GENERATED_KEYS);
+			qLangSetRootNode = db.prepareStatement("UPDATE lang_t SET rootnode=?2 WHERE id=?1", Statement.RETURN_GENERATED_KEYS);
+
+			qGetWordByID = db.prepareStatement("SELECT lang, value FROM word_t WHERE id=?1");
+			qGetWordByContent = db.prepareStatement("SELECT id FROM word_t WHERE lang=?1 AND value=?2");
+			qNewWord = db.prepareStatement("INSERT INTO word_t (lang, value) VALUES (?1, ?2)", Statement.RETURN_GENERATED_KEYS);
+
+			qGetNode = db.prepareStatement("SELECT ntype, boundary, mandatory_pfx, children FROM node_t WHERE id=?1");
+			qDeleteNode = db.prepareStatement("DELETE FROM node_t WHERE id=?1");
+			qNewNode = db.prepareStatement("INSERT INTO node_t (ntype, boundary, mandatory_pfx, children) VALUES (?1, ?2, ?3, ?4)", Statement.RETURN_GENERATED_KEYS);
+		}
+		catch (Exception e) { throw new RuntimeException(e); }
+	}
 
 	class DBString implements Queueable {
 		String content;
@@ -78,13 +100,21 @@ public class WordSet {
 		public long getID() {
 			if (id == -1) {
 				try {
-					qNewWord.setLong(1, langId);
-					qNewWord.setString(2, content);
-					if (qNewWord.executeUpdate() < 0)
-						throw new SQLException("Creating word failed, no ID obtained.");
-					ResultSet keys = qNewWord.getGeneratedKeys();
-					if (keys.next())
-						id = keys.getLong(1);
+					qGetWordByContent.setLong(1, langId);
+					qGetWordByContent.setString(2, content);
+					ResultSet rs = qGetWordByContent.executeQuery();
+					if (rs.next()) {
+						id = rs.getLong(1);
+					}
+					else {
+						qNewWord.setLong(1, langId);
+						qNewWord.setString(2, content);
+						if (qNewWord.executeUpdate() < 0)
+							throw new SQLException("Creating word failed, no ID obtained.");
+						rs = qNewWord.getGeneratedKeys();
+						if (rs.next())
+							id = rs.getLong(1);
+					}
 				}
 				catch (SQLException e) { throw new RuntimeException(e); }
 			}
@@ -96,8 +126,8 @@ public class WordSet {
 
 		void fetch() {
 			try {
-				qGetWord.setLong(1, id);
-				ResultSet rs = qGetWord.executeQuery();
+				qGetWordByID.setLong(1, id);
+				ResultSet rs = qGetWordByID.executeQuery();
 				if (rs.isAfterLast())
 					throw new RuntimeException("Word '" + id + "' not found");
 				langId = rs.getLong(1);
@@ -119,22 +149,6 @@ public class WordSet {
 		}
 
 	}
-	void connectDB(String dbFileName) {
-		try {
-			Class.forName("org.sqlite.JDBC");
-			db = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
-			db.setAutoCommit(false);
-
-			qGetWord = db.prepareStatement("SELECT lang, value FROM word_t WHERE id=?1");
-			qGetNode = db.prepareStatement("SELECT ntype, boundary, mandatory_pfx, children FROM node_t WHERE id=?1");
-			qNewWord = db.prepareStatement("INSERT INTO word_t (lang, value) VALUES (?1, ?2)", Statement.RETURN_GENERATED_KEYS);
-			qNewNode = db.prepareStatement("INSERT INTO node_t (ntype, boundary, mandatory_pfx, children) VALUES (?1, ?2, ?3, ?4)", Statement.RETURN_GENERATED_KEYS);
-			qLangRootNode = db.prepareStatement("UPDATE lang_t SET rootnode=?2 WHERE id=?1", Statement.RETURN_GENERATED_KEYS);
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
 
 	class DBNode implements Queueable {
 		long id;
@@ -146,8 +160,8 @@ public class WordSet {
 		DBNode(boolean leaf) { // create blank for builting the tree
 			id = -1;
 			isLeaf = leaf;
-			//boundary = new Expression();
-			//children = new ArrayList<Queueable>();
+			boundary = new Expression();
+			children = new ArrayList<Queueable>();
 		}
 
 		DBNode(long nid) { // create existing from DB
@@ -359,22 +373,20 @@ public class WordSet {
 
 				}
 				try {
-				qNewNode.setInt(1, isLeaf ? 0 : 1); // ?1 = ntype
-				qNewNode.setString(2, sb.toString());
-				qNewNode.setInt(3, mandatory_pfx);
-				qNewNode.setBytes(4, childIDs.array()); // ?4 = children
+					qNewNode.setInt(1, isLeaf ? 0 : 1); // ?1 = ntype
+					qNewNode.setString(2, sb.toString());
+					qNewNode.setInt(3, mandatory_pfx);
+					qNewNode.setBytes(4, childIDs.array()); // ?4 = children
 
-				if (qNewNode.executeUpdate() == 1) {
-					ResultSet keys = qNewNode.getGeneratedKeys();
-					if (keys.next())
-						id = keys.getLong(1);
+					if (qNewNode.executeUpdate() == 1) {
+						ResultSet keys = qNewNode.getGeneratedKeys();
+						if (keys.next())
+							id = keys.getLong(1);
+					}
+					if (id < 0)
+						throw new RuntimeException("Creating node failed, no ID obtained.");
 				}
-				if (id < 0)
-					throw new RuntimeException("Creating node failed, no ID obtained.");
-				}
-				catch (Exception e) {
-					throw new RuntimeException(e);
-				}
+				catch (SQLException e) { throw new RuntimeException(e); }
 			}
 			return id;
 		}
@@ -390,6 +402,20 @@ public class WordSet {
 				for (int i = 0; i < nIds; i++)
 					coll.addResult(new DBNode(childIDs.getLong()));
 			}
+		}
+
+		public void removeFromDB() {
+			if (!isLeaf) {
+				childIDs.position(0);
+				int nIds = childIDs.remaining() / Long.BYTES;
+				for (int i = 0; i < nIds; i++)
+					new DBNode(childIDs.getLong()).removeFromDB();
+			}
+			try { 
+				qDeleteNode.setInt(1, isLeaf ? 0 : 1); // ?1 = ntype
+				qDeleteNode.executeUpdate();
+			}
+			catch (SQLException e) { throw new RuntimeException(e); }
 		}
 	}
 }
