@@ -19,7 +19,7 @@ all:		LDist.class $(WST_CLASSES) wordset.db
 
 $(WST_CLASSES):	$(WST_LIBS)
 
-.PHONY:		clean run run1 run2 run3
+.PHONY:		clean search train
 
 CLASSPATH=$(ICU_JAR):$(SQLITE_JAR):.
 
@@ -31,7 +31,7 @@ search:		$(WST_CLASSES)
 
 
 train:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) WordSetTrainer a.words
+		java -cp $(CLASSPATH) WordSetTrainer german.words
 
 
 %.class:	%.java

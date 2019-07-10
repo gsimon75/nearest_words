@@ -92,7 +92,7 @@ public class Expression {
 		return areaCached;
 	}
 
-	public float distance_naive_but_shitty(String s) {
+	public float distance_naive_but_suboptimal(String s) {
 		int nLetters = letters.size();
 		int nOtherLetters = s.length();
 		int nMin = Math.min(nLetters, nOtherLetters);
