@@ -19,7 +19,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.text.Normalizer2;
 
-public class WordSet {
+public class Vocabulary {
 	Connection db;
 	PreparedStatement qGetWordByID, qGetWordByContent, qNewWord;
 	PreparedStatement qGetNode, qNewNode, qDeleteNode;
@@ -121,7 +121,7 @@ public class WordSet {
 			return id;
 		}
 
-		public void enqueueChildren(WordSet.ResultCollector coll) {
+		public void enqueueChildren(Vocabulary.ResultCollector coll) {
 		}
 
 		void fetch() {
@@ -190,7 +190,7 @@ public class WordSet {
 		public void add(Queueable n) {
 			if (isLeaf) {
 				if (!(n instanceof DBString))
-					throw new RuntimeException("Leaf node may contain only WordSetStrings");
+					throw new RuntimeException("Leaf node may contain only VocabularyStrings");
 				DBString ns = (DBString)n;
 				boundary.add(ns.content);
 				children.add(ns);

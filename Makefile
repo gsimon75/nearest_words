@@ -10,12 +10,12 @@ ICU_JAR=icu4j-$(ICU4J_MAJOR)_$(ICU4J_MINOR).jar
 #/usr/local/lib/libsqlitejdbc.so
 SQLITE_JAR=/usr/local/share/java/classes/sqlitejdbc-native.jar
 
-WST_CLASSES=Expression.class Helper.class LetterSet.class WordSet.class WordSetSearch.class WordSetTrainer.class
+WST_CLASSES=Expression.class Helper.class LetterSet.class Vocabulary.class VocabularySearch.class VocabularyTrainer.class
 
 WST_LIBS=$(ICU_JAR) $(SQLITE_JAR)
 
 
-all:		LDist.class $(WST_CLASSES) wordset.db
+all:		$(WST_CLASSES) wordset.db
 
 $(WST_CLASSES):	$(WST_LIBS)
 
@@ -27,11 +27,11 @@ clean:
 		rm -f *.class
 
 search:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) WordSetSearch
+		java -cp $(CLASSPATH) VocabularySearch
 
 
 train:		$(WST_CLASSES)
-		java -cp $(CLASSPATH) WordSetTrainer german.words
+		java -cp $(CLASSPATH) VocabularyTrainer german.words
 
 
 %.class:	%.java

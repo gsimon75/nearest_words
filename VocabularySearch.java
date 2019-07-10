@@ -22,16 +22,33 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 
-public class WordSetSearch extends WordSet {
+public class VocabularySearch extends Vocabulary {
 
 	public interface ResultListener {
 		public boolean foundResult(String s, float dist);
 	}
 
 
-	public static final void main(String[] argv) { new WordSetSearch(argv); }
+	public class TopNResultListener implements ResultListener {
+		int N, n;
 
-	WordSetSearch(String[] argv) {
+		public TopNResultListener(int N) {
+			this.N = N;
+			n = 0;
+		}
+		public boolean foundResult(String s, float dist) {
+			System.out.println("n=" + n + ",dist=" + dist + ", s='" + s + "'");
+			n++;
+			return n < N;
+		}
+		public void reset() {
+			n = 0;
+		}
+	}
+
+	public static final void main(String[] argv) { new VocabularySearch(argv); }
+
+	VocabularySearch(String[] argv) {
 		String langCode = "deu";
 		connectDB("wordset.db");
 		long rootNodeId;
@@ -48,15 +65,7 @@ public class WordSetSearch extends WordSet {
 		InputStreamReader isr = new InputStreamReader(System.in);
 		BufferedReader br = new BufferedReader(isr);
 
-		WordSetSearch.ResultListener dumpTop10 =
-			new WordSetSearch.ResultListener() {
-				int n = 0;
-				public boolean foundResult(String s, float dist) {
-					System.out.println("n=" + n + ",dist=" + dist + ", s='" + s + "'");
-					n++;
-					return n < 10;
-				}
-			};
+		TopNResultListener dumpTop10 = new TopNResultListener(10);
 
 		while (true) {
 			System.out.print("Ready> ");
@@ -71,6 +80,7 @@ public class WordSetSearch extends WordSet {
 				break;
 			String word = toNFD.normalize(line.trim());
 			search(rootNodeId, word, dumpTop10);
+			dumpTop10.reset();
 		}
 	}
 

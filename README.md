@@ -96,9 +96,9 @@ Sometimes you'll see fractional distances, that's because of the extensions to t
 * `Helper.java`: The Levenshtein distance algorithm with all its belongings
 * `LetterSet.java`: A set of letters (used in Expressions), along with its handling methods (weight, distance, add, addAll)
 * `Expression.java`: A representing expression for word sets, with its methods (distance, area, add)
-* `WordSet.java`: A base class that represents a vocabulary **TODO** Should be called Vocabulary
-* `WordSetTrainer.java`: The algorithm of building the vocabulary
-* `WordSetSearch.java`: The algorithm to do lookups from the vocabulary
+* `Vocabulary.java`: A base class that represents a vocabulary
+* `VocabularyTrainer.java`: The algorithm of building the vocabulary
+* `VocabularySearch.java`: The algorithm to do lookups from the vocabulary
 
 
 ### The database

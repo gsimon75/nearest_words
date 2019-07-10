@@ -1,4 +1,4 @@
-//import WordSetTrainer;
+//import VocabularyTrainer;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -12,11 +12,11 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.ResultSet;
 
-class WordSetTrainer extends WordSet {
+class VocabularyTrainer extends Vocabulary {
 
-	public static final void main(String[] argv) { new WordSetTrainer(argv); }
+	public static final void main(String[] argv) { new VocabularyTrainer(argv); }
 
-	WordSetTrainer(String[] argv) {
+	VocabularyTrainer(String[] argv) {
 		connectDB("wordset.db");
 		long langId = -1;
 		long rootNodeId = -1;
