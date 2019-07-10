@@ -9,7 +9,7 @@ user probably intended to enter. Even better if we could list the top-N closest 
 The classic [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) is used as first approach, 
 but if needed, any other metric can be used.
 
-`LDist.java` is a more-or-less straightforward implementation of the full-matrix solution, with some extra quirks
+`Helper.java` is a more-or-less straightforward implementation of the full-matrix solution, with some extra quirks
 to deal with diacritic marks.
 
 
